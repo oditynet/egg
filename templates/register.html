@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Регистрация - Яйцо{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="modal__content" style="margin: 0 auto;">
+        <h2 class="modal__title">Регистрация</h2>
+        
+        {% if error %}
+        <div style="color: red; margin-bottom: 15px; text-align: center;">{{ error }}</div>
+        {% endif %}
+        
+        <form action="{{ url_for('register') }}" method="POST">
+            <div class="form__group">
+                <label class="form__label">Имя</label>
+                <input type="text" class="form__input" name="name" required>
+            </div>
+            <div class="form__group">
+                <label class="form__label">Email</label>
+                <input type="email" class="form__input" name="email" required>
+            </div>
+            <div class="form__group">
+                <label class="form__label">Пароль</label>
+                <input type="password" class="form__input" name="password" required>
+            </div>
+            <div class="form__group">
+                <label class="form__label">Адрес доставки</label>
+                <input type="text" class="form__input" name="address" required>
+            </div>
+            <div class="form__group">
+                <label class="form__label">Я хочу:</label>
+                <select class="form__select" name="role">
+                    <option value="customer">Покупать товары</option>
+                    <option value="seller">Продавать товары</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn--primary">Зарегистрироваться</button>
+        </form>
+        
+        <div class="form__switch">
+            <a href="{{ url_for('login') }}" class="form__switch-btn">Уже есть аккаунт? Войти</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

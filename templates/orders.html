@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Мои заказы - Яйцо{% endblock %}
+
+{% block content %}
+<div class="user-orders">
+    <h2 class="section__title">Мои заказы</h2>
+    
+    <div class="orders-list">
+        {% if orders %}
+            {% for order in orders %}
+            <div class="order-item">
+                <div class="order-item__header">
+                    <div>Заказ #{{ order.id }}</div>
+                    <div>{{ order.created_at }}</div>
+                </div>
+                
+                <div class="order-item__products">
+                    {% set order_products = order.products|from_json %}
+                    {% for product in order_products %}
+                        <div>{{ product.name }} - {{ product.quantity }} шт. x {{ product.price }} руб.</div>
+                    {% endfor %}
+                </div>
+                
+                <div class="order-item__status">
+                    <span class="status-badge status-badge--{{ order.status }}">
+                        {% if order.status == 'payment' %}Оплата
+                        {% elif order.status == 'shipping' %}Отправка
+                        {% elif order.status == 'delivered' %}Доставка
+                        {% else %}{{ order.status }}{% endif %}
+                    </span>
+                    <span>Общая сумма: {{ order.total_price }} руб.</span>
+                </div>
+                
+                <div>Адрес доставки: {{ order.address }}</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-center">У вас пока нет заказов</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

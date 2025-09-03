@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="section">
+    <h2 class="section__title">{% if search_query %}Результаты поиска "{{ search_query }}"{% else %}Все товары{% endif %}</h2>
+    
+    {% if products %}
+    <div class="products-grid">
+        {% for product in products %}
+        <div class="product-card">
+        <img src="{{ product.images.split('\n')[0] if product.images else url_for('static', filename='images/placeholder.jpg') }}" 
+     alt="{{ product.name }}" class="product-card__image">
+            <div class="product-card__content">
+                <a href="{{ url_for('product_detail', product_id=product.id) }}" class="product-card__title">{{ product.name }}</a>
+                <div class="product-card__price">{{ product.price }} руб.</div>
+                <button class="product-card__btn" onclick="addToCart({{ product.id }})">В корзину</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-center">Товары не найдены</p>
+    {% endif %}
+</section>
+{% endblock %}

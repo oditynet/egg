@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Вход - Яйцо{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="modal__content" style="margin: 0 auto;">
+        <h2 class="modal__title">Вход</h2>
+        
+        {% if error %}
+        <div style="color: red; margin-bottom: 15px; text-align: center;">{{ error }}</div>
+        {% endif %}
+        
+        <form action="{{ url_for('login') }}" method="POST">
+            <div class="form__group">
+                <label class="form__label">Email</label>
+                <input type="email" class="form__input" name="email" required>
+            </div>
+            <div class="form__group">
+                <label class="form__label">Пароль</label>
+                <input type="password" class="form__input" name="password" required>
+            </div>
+            <button type="submit" class="btn btn--primary">Войти</button>
+        </form>
+        
+        <div class="form__switch">
+            <a href="{{ url_for('register') }}" class="form__switch-btn">Нет аккаунта? Зарегистрироваться</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

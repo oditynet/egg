@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - Яйцо{% endblock %}
+
+{% block content %}
+<div class="product-page">
+    <a href="{{ url_for('index') }}" class="product-page__back">← Назад к товарам</a>
+    
+    <div class="product-detail">
+        <div class="product-detail__gallery">
+            {% if images %}
+                <img src="{{ images[0] }}" alt="{{ product.name }}" class="product-detail__main-image" id="mainProductImage">
+                {% for image in images[1:5] %}
+                    <img src="{{ image }}" alt="{{ product.name }}" class="product-detail__thumb" onclick="document.getElementById('mainProductImage').src = this.src">
+                {% endfor %}
+            {% else %}
+                <img src="{{ url_for('static', filename='images/placeholder.jpg') }}" alt="{{ product.name }}" class="product-detail__main-image">
+            {% endif %}
+        </div>
+        
+        <div class="product-detail__info">
+            <h1 class="product-detail__title">{{ product.name }}</h1>
+            <div class="product-detail__price">{{ product.price }} руб.</div>
+            <p class="product-detail__description">{{ product.description }}</p>
+            
+            {% if features %}
+            <h3>Характеристики:</h3>
+            <ul>
+                {% for feature in features %}
+                    <li>{{ feature }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            
+            <button class="product-detail__add-to-cart" onclick="addToCart({{ product.id }})">Добавить в корзину</button>
+        </div>
+    </div>
+</div>
+{% endblock %}

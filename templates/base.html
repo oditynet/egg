@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Яйцо - Интернет-магазин{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="header">
+        <div class="container header__content">
+            <a href="{{ url_for('index') }}" class="logo">Яйцо</a>
+            
+            <form class="search-form" action="{{ url_for('index') }}" method="GET">
+                <input type="text" class="search-form__input" name="search" value="{{ search_query if search_query }}" placeholder="Поиск товаров...">
+            </form>
+            
+            <nav class="nav">
+                <a href="{{ url_for('index') }}" class="nav__link">Главная</a>
+                <a href="{{ url_for('cart') }}" class="nav__link">Корзина <span class="nav__cart-count">{{ cart_count }}</span></a>
+                <a href="{{ url_for('orders') }}" class="nav__link">Мои заказы</a>
+                
+                {% if session.user_id %}
+                    {% if session.user_role == 'seller' %}
+                        <a href="{{ url_for('seller_dashboard') }}" class="nav__link">Кабинет продавца</a>
+                    {% endif %}
+                    <a href="{{ url_for('logout') }}" class="nav__link">Выйти ({{ session.user_name }})</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="nav__link">Войти</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        function addToCart(productId, quantity = 1) {
+            fetch('{{ url_for("add_to_cart") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'product_id=' + productId + '&quantity=' + quantity
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    updateCartCount();
+                } else {
+                    alert(data.message);
+                    window.location.href = '{{ url_for("login") }}';
+                }
+            });
+        }
+
+        function updateCartCount() {
+            fetch('{{ url_for("get_cart_count") }}')
+            .then(response => response.json())
+            .then(data => {
+                document.querySelector('.nav__cart-count').textContent = data.count;
+            });
+        }
+
+        // Инициализация счетчика корзины при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCartCount();
+        });
+    </script>
+</body>
+</html>

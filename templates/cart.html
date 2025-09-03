@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Корзина - Яйцо{% endblock %}
+
+{% block content %}
+<div class="cart-page">
+    <h2 class="section__title">Корзина</h2>
+    
+    <div class="cart-items">
+        {% if cart_items %}
+            {% for item in cart_items %}
+            <div class="cart-item">
+            <img src="{{ item.images.split('\n')[0] if item.images else url_for('static', filename='images/placeholder.jpg') }}" 
+     alt="{{ item.name }}" class="cart-item__image">
+                <div class="cart-item__content">
+                    <div>
+                        <div class="cart-item__title">{{ item.name }}</div>
+                        <div class="cart-item__price">{{ item.price }} руб. x {{ item.quantity }} = {{ item.price * item.quantity }} руб.</div>
+                    </div>
+                    <button class="cart-item__remove" onclick="removeFromCart({{ item.product_id }})">×</button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-center">Корзина пуста</p>
+        {% endif %}
+    </div>
+    
+    {% if cart_items %}
+    <div class="cart-total">
+        <p class="cart-total__text">Итого: <span class="cart-total__price">{{ total_price }}</span> руб.</p>
+        <button class="cart-total__btn" onclick="checkout()">Оформить заказ</button>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    function removeFromCart(productId) {
+        fetch('{{ url_for("remove_from_cart") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'product_id=' + productId
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message);
+            }
+        });
+    }
+
+    function checkout() {
+        fetch('{{ url_for("checkout") }}', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Заказ оформлен! Номер вашего заказа: ' + data.order_id);
+                window.location.href = '{{ url_for("orders") }}';
+            } else {
+                alert(data.message);
+            }
+        });
+    }
+</script>
+{% endblock %}

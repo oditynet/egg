@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Кабинет продавца - Яйцо{% endblock %}
+
+{% block content %}
+<div class="seller-dashboard">
+    <h2 class="section__title">Кабинет продавца</h2>
+    
+    <div class="dashboard__tabs">
+        <div class="dashboard__tab dashboard__tab--active" onclick="switchTab('addProduct')">Добавить товар</div>
+        <div class="dashboard__tab" onclick="switchTab('orders')">Заказы</div>
+    </div>
+    
+    <div id="addProductTab" class="dashboard__content dashboard__content--active">
+        <form class="add-product-form" id="addProductForm" enctype="multipart/form-data">
+            <div class="form__group">
+                <label class="form__label">Название товара *</label>
+                <input type="text" class="form__input" id="productName" name="name" required>
+            </div>
+            <div class="form__group">
+                <label class="form__label">Цена (руб.) *</label>
+                <input type="number" class="form__input" id="productPrice" name="price" min="0" step="0.01" required>
+            </div>
+            <div class="form__group">
+                <label class="form__label">Описание *</label>
+                <textarea class="form__input" id="productDescription" name="description" rows="4" required></textarea>
+            </div>
+            <div class="form__group">
+                <label class="form__label">Характеристики (каждая с новой строки) *</label>
+                <textarea class="form__input" id="productFeatures" name="features" rows="4" placeholder="Цвет: Красный
+Размер: M
+Материал: Хлопок" required></textarea>
+            </div>
+            <div class="form__group">
+                <label class="form__label">Изображения товара *</label>
+                <input type="file" class="form__input" id="productImages" name="images" multiple accept="image/*" required>
+                <small>Можно выбрать несколько изображений</small>
+            </div>
+            <button type="submit" class="btn btn--primary">Добавить товар</button>
+        </form>
+        
+        <div id="addProductMessage" class="message" style="display: none; margin-top: 20px; padding: 10px; border-radius: var(--border-radius);"></div>
+    </div>
+    
+    <div id="ordersTab" class="dashboard__content">
+        <div class="orders-list">
+            {% if orders %}
+                {% for order in orders %}
+                <div class="order-item">
+                    <div class="order-item__header">
+                        <div>Заказ #{{ order.id }}</div>
+                        <div>{{ order.created_at }}</div>
+                    </div>
+                    
+                    <div class="order-item__products">
+                        {% set order_products = order.products|from_json %}
+                        {% for product in order_products %}
+                            <div>{{ product.name }} - {{ product.quantity }} шт. x {{ product.price }} руб.</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="order-item__status">
+                        <span class="status-badge status-badge--{{ order.status }}">
+                            {% if order.status == 'payment' %}Оплата
+                            {% elif order.status == 'shipping' %}Отправка
+                            {% elif order.status == 'delivered' %}Доставка
+                            {% else %}{{ order.status }}{% endif %}
+                        </span>
+                        <span>Общая сумма: {{ order.total_price }} руб.</span>
+                    </div>
+                    
+                    <div>Адрес доставки: {{ order.address }}</div>
+                    
+                    <div class="order-item__actions">
+                        <select id="status_{{ order.id }}">
+                            <option value="payment" {% if order.status == 'payment' %}selected{% endif %}>Оплата</option>
+                            <option value="shipping" {% if order.status == 'shipping' %}selected{% endif %}>Отправка</option>
+                            <option value="delivered" {% if order.status == 'delivered' %}selected{% endif %}>Доставка</option>
+                        </select>
+                        <button class="btn btn--secondary" onclick="updateOrderStatus({{ order.id }})">Обновить статус</button>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-center">Заказов пока нет</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchTab(tabName) {
+        // Скрыть все вкладки
+        document.querySelectorAll('.dashboard__content').forEach(tab => {
+            tab.classList.remove('dashboard__content--active');
+        });
+        
+        // Показать выбранную вкладку
+        document.getElementById(tabName + 'Tab').classList.add('dashboard__content--active');
+        
+        // Обновить активную вкладку в навигации
+        document.querySelectorAll('.dashboard__tab').forEach(tab => {
+            tab.classList.remove('dashboard__tab--active');
+        });
+        event.target.classList.add('dashboard__tab--active');
+    }
+
+    document.getElementById('addProductForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData();
+        formData.append('name', document.getElementById('productName').value);
+        formData.append('price', document.getElementById('productPrice').value);
+        formData.append('description', document.getElementById('productDescription').value);
+        formData.append('features', document.getElementById('productFeatures').value);
+        
+        // Добавляем файлы изображений
+        const imageFiles = document.getElementById('productImages').files;
+        for (let i = 0; i < imageFiles.length; i++) {
+            formData.append('images', imageFiles[i]);
+        }
+        
+        const messageDiv = document.getElementById('addProductMessage');
+        messageDiv.style.display = 'none';
+        
+        fetch('{{ url_for("add_product") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                messageDiv.style.backgroundColor = 'var(--success-color)';
+                messageDiv.style.color = 'white';
+                messageDiv.textContent = 'Товар успешно добавлен! ID: ' + data.product_id;
+                messageDiv.style.display = 'block';
+                document.getElementById('addProductForm').reset();
+                
+                // Прокрутка к сообщению
+                messageDiv.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                messageDiv.style.backgroundColor = 'var(--error-color)';
+                messageDiv.style.color = 'white';
+                messageDiv.textContent = 'Ошибка: ' + data.message;
+                messageDiv.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            messageDiv.style.backgroundColor = 'var(--error-color)';
+            messageDiv.style.color = 'white';
+            messageDiv.textContent = 'Ошибка сети: ' + error.message;
+            messageDiv.style.display = 'block';
+        });
+    });
+
+    function updateOrderStatus(orderId) {
+        const status = document.getElementById('status_' + orderId).value;
+        
+        const formData = new FormData();
+        formData.append('order_id', orderId);
+        formData.append('status', status);
+        
+        fetch('{{ url_for("update_order_status") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Статус заказа обновлен!');
+                location.reload();
+            } else {
+                alert('Ошибка: ' + data.message);
+            }
+        });
+    }
+</script>
+
+<style>
+.message {
+    padding: 15px;
+    border-radius: var(--border-radius);
+    margin: 15px 0;
+    text-align: center;
+}
+
+.add-product-form small {
+    color: #666;
+    font-size: 12px;
+    display: block;
+    margin-top: 5px;
+}
+
+.order-item__actions {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.order-item__actions select {
+    padding: 8px;
+    border-radius: var(--border-radius);
+    border: 1px solid #ddd;
+}
+</style>
+{% endblock %}
