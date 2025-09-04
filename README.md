@@ -15,3 +15,5 @@
 
 <img src="https://github.com/oditynet/egg/blob/main/pic1.png" title="example" width="800" />
 <img src="https://github.com/oditynet/egg/blob/main/pic2.png" title="example" width="800" />
+<img src="https://github.com/oditynet/egg/blob/main/pic3.png" title="example" width="800" />
+<img src="https://github.com/oditynet/egg/blob/main/pic4.png" title="example" width="800" />
