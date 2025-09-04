@@ -22,7 +22,12 @@
                 
                 {% if session.user_id %}
                     {% if session.user_role == 'seller' %}
-                        <a href="{{ url_for('seller_dashboard') }}" class="nav__link">Кабинет продавца</a>
+                        <a href="{{ url_for('seller_dashboard') }}" class="nav__link">
+                            Кабинет продавца 
+                            {% if unread_count and unread_count > 0 %}
+                                <span class="nav__notification-count">{{ unread_count }}</span>
+                            {% endif %}
+                        </a>
                     {% endif %}
                     <a href="{{ url_for('logout') }}" class="nav__link">Выйти ({{ session.user_name }})</a>
                 {% else %}

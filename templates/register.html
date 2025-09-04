@@ -4,11 +4,11 @@
 
 {% block content %}
 <div class="section">
-    <div class="modal__content" style="margin: 0 auto;">
+    <div class="modal__content" style="margin: 0 auto; max-width: 400px;">
         <h2 class="modal__title">Регистрация</h2>
         
         {% if error %}
-        <div style="color: red; margin-bottom: 15px; text-align: center;">{{ error }}</div>
+        <div class="alert alert-error">{{ error }}</div>
         {% endif %}
         
         <form action="{{ url_for('register') }}" method="POST">
@@ -16,18 +16,22 @@
                 <label class="form__label">Имя</label>
                 <input type="text" class="form__input" name="name" required>
             </div>
+            
             <div class="form__group">
                 <label class="form__label">Email</label>
                 <input type="email" class="form__input" name="email" required>
             </div>
+            
             <div class="form__group">
                 <label class="form__label">Пароль</label>
                 <input type="password" class="form__input" name="password" required>
             </div>
+            
             <div class="form__group">
                 <label class="form__label">Адрес доставки</label>
                 <input type="text" class="form__input" name="address" required>
             </div>
+            
             <div class="form__group">
                 <label class="form__label">Я хочу:</label>
                 <select class="form__select" name="role">
@@ -35,6 +39,7 @@
                     <option value="seller">Продавать товары</option>
                 </select>
             </div>
+            
             <button type="submit" class="btn btn--primary">Зарегистрироваться</button>
         </form>
         
@@ -43,4 +48,37 @@
         </div>
     </div>
 </div>
+
+<style>
+.alert {
+    padding: 12px;
+    border-radius: var(--border-radius);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.alert-error {
+    background-color: #ffebee;
+    color: #c62828;
+    border: 1px solid #ffcdd2;
+}
+
+.form__switch {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.form__switch-btn {
+    color: var(--accent-color);
+    text-decoration: none;
+    padding: 8px;
+    border-radius: var(--border-radius);
+    transition: background-color 0.3s;
+    display: block;
+}
+
+.form__switch-btn:hover {
+    background-color: var(--primary-color);
+}
+</style>
 {% endblock %}

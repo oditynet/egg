@@ -2,24 +2,166 @@
 
 {% block content %}
 <section class="section">
-    <h2 class="section__title">{% if search_query %}Результаты поиска "{{ search_query }}"{% else %}Все товары{% endif %}</h2>
-    
-    {% if products %}
-    <div class="products-grid">
-        {% for product in products %}
-        <div class="product-card">
-        <img src="{{ product.images.split('\n')[0] if product.images else url_for('static', filename='images/placeholder.jpg') }}" 
-     alt="{{ product.name }}" class="product-card__image">
-            <div class="product-card__content">
-                <a href="{{ url_for('product_detail', product_id=product.id) }}" class="product-card__title">{{ product.name }}</a>
-                <div class="product-card__price">{{ product.price }} руб.</div>
-                <button class="product-card__btn" onclick="addToCart({{ product.id }})">В корзину</button>
+    <div class="filters-section">
+        <h2 class="section__title">Все товары</h2>
+        
+        <div class="filters-container">
+            <div class="filters-sidebar">
+                <h3>Фильтры</h3>
+                
+                <form class="filters-form" method="GET" action="{{ url_for('index') }}">
+                    <div class="filter-group">
+                        <label>Цена:</label>
+                        <div class="price-filters">
+                            <input type="number" name="min_price" placeholder="От" value="{{ min_price if min_price }}" class="form-input" min="0">
+                            <span>-</span>
+                            <input type="number" name="max_price" placeholder="До" value="{{ max_price if max_price }}" class="form-input" min="0">
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>Сортировка:</label>
+                        <select name="sort_by" class="form-select">
+                            <option value="name" {% if sort_by == 'name' %}selected{% endif %}>По названию</option>
+                            <option value="price" {% if sort_by == 'price' %}selected{% endif %}>По цене</option>
+                            <option value="rating" {% if sort_by == 'rating' %}selected{% endif %}>По рейтингу</option>
+                            <option value="reviews" {% if sort_by == 'reviews' %}selected{% endif %}>По отзывам</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>Порядок:</label>
+                        <select name="sort_order" class="form-select">
+                            <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>По возрастанию</option>
+                            <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>По убыванию</option>
+                        </select>
+                    </div>
+                    
+                    <input type="hidden" name="search" value="{{ search_query }}">
+                    <button type="submit" class="btn btn--secondary">Применить</button>
+                    <a href="{{ url_for('index') }}" class="btn btn--secondary">Сбросить</a>
+                </form>
+            </div>
+            
+            <div class="products-main">
+                {% if search_query %}
+                <div class="search-results-info">
+                    <p>Результаты поиска по запросу: <strong>"{{ search_query }}"</strong></p>
+                    <p>Найдено товаров: {{ products|length }}</p>
+                </div>
+                {% endif %}
+                
+                {% if products %}
+                <div class="products-grid">
+                    {% for product in products %}
+                    <div class="product-card">
+                        <img src="{{ product.images.split('\n')[0] if product.images else url_for('static', filename='images/placeholder.jpg') }}" 
+                             alt="{{ product.name }}" class="product-card__image">
+                        <div class="product-card__content">
+                            <a href="{{ url_for('product_detail', product_id=product.id) }}" class="product-card__title">{{ product.name }}</a>
+                            
+                            <div class="product-rating">
+                                <div class="stars">
+                                    {% for i in range(5) %}
+                                        {% if i < product.rating|int %}
+                                            <span class="star filled">★</span>
+                                        {% else %}
+                                            <span class="star">★</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <span class="rating-value">({{ product.rating|round(1) }})</span>
+                                <span class="reviews-count">{{ product.reviews_count }} отзывов</span>
+                            </div>
+                            
+                            <div class="product-card__price">{{ product.price }} руб.</div>
+                            <button class="product-card__btn" onclick="addToCart({{ product.id }})">В корзину</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-products">
+                    <div class="empty-products__icon">🔍</div>
+                    <h3 class="empty-products__title">Товары не найдены</h3>
+                    <p class="empty-products__text">Попробуйте изменить параметры поиска или фильтрации</p>
+                    <a href="{{ url_for('index') }}" class="btn btn--primary">Сбросить фильтры</a>
+                </div>
+                {% endif %}
             </div>
         </div>
-        {% endfor %}
     </div>
-    {% else %}
-    <p class="text-center">Товары не найдены</p>
-    {% endif %}
 </section>
+
+<style>
+.search-results-info {
+    background: white;
+    padding: 15px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+}
+
+.search-results-info p {
+    margin: 5px 0;
+}
+
+.empty-products {
+    text-align: center;
+    padding: 60px 20px;
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+.empty-products__icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.empty-products__title {
+    color: var(--accent-color);
+    margin-bottom: 10px;
+    font-size: 24px;
+}
+
+.empty-products__text {
+    color: var(--dark-color);
+    margin-bottom: 30px;
+    font-size: 16px;
+}
+
+.filters-form .btn {
+    margin-top: 10px;
+    margin-right: 10px;
+}
+
+@media (max-width: 768px) {
+    .filters-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .filters-sidebar {
+        order: 2;
+    }
+    
+    .products-main {
+        order: 1;
+    }
+    
+    .price-filters {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .price-filters input {
+        width: 100%;
+    }
+    
+    .filters-form .btn {
+        width: 100%;
+        margin: 5px 0;
+    }
+}
+</style>
 {% endblock %}

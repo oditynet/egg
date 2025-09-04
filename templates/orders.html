@@ -6,38 +6,271 @@
 <div class="user-orders">
     <h2 class="section__title">Мои заказы</h2>
     
+    {% if orders %}
     <div class="orders-list">
-        {% if orders %}
-            {% for order in orders %}
-            <div class="order-item">
-                <div class="order-item__header">
-                    <div>Заказ #{{ order.id }}</div>
-                    <div>{{ order.created_at }}</div>
-                </div>
-                
-                <div class="order-item__products">
-                    {% set order_products = order.products|from_json %}
-                    {% for product in order_products %}
-                        <div>{{ product.name }} - {{ product.quantity }} шт. x {{ product.price }} руб.</div>
-                    {% endfor %}
-                </div>
-                
-                <div class="order-item__status">
-                    <span class="status-badge status-badge--{{ order.status }}">
-                        {% if order.status == 'payment' %}Оплата
-                        {% elif order.status == 'shipping' %}Отправка
-                        {% elif order.status == 'delivered' %}Доставка
-                        {% else %}{{ order.status }}{% endif %}
-                    </span>
-                    <span>Общая сумма: {{ order.total_price }} руб.</span>
-                </div>
-                
-                <div>Адрес доставки: {{ order.address }}</div>
+        {% for order in orders %}
+        <div class="order-item">
+            <div class="order-item__header">
+                <div><strong>Заказ #{{ order.order_number }}</strong></div>
+                <div>{{ order.created_at[:16] }}</div>
             </div>
-            {% endfor %}
-        {% else %}
-            <p class="text-center">У вас пока нет заказов</p>
-        {% endif %}
+            
+            <div class="order-item__products">
+                {% set order_products = order.products|from_json %}
+                {% for product in order_products %}
+                    <div class="order-product">
+                        <span class="order-product__name">{{ product.name }}</span>
+                        <span class="order-product__details">{{ product.quantity }} шт. × {{ product.price }} руб. = {{ product.quantity * product.price }} руб.</span>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <div class="order-item__status">
+                <span class="status-badge 
+                    {% if order.status == 'payment' %}status-badge--payment
+                    {% elif order.status == 'shipping' %}status-badge--shipping
+                    {% elif order.status == 'delivery' %}status-badge--delivery
+                    {% elif order.status == 'received' %}status-badge--received
+                    {% endif %}">
+                    
+                    {% if order.status == 'payment' %}Ожидание оплаты
+                    {% elif order.status == 'shipping' %}В процессе отправки
+                    {% elif order.status == 'delivery' %}Передан в доставку
+                    {% elif order.status == 'received' %}Получен
+                    {% else %}{{ order.status }}{% endif %}
+                </span>
+                
+                <span class="order-total">Общая сумма: <strong>{{ order.total_price }} руб.</strong></span>
+            </div>
+            
+            <div class="order-address">
+                <strong>Адрес доставки:</strong> {{ order.address }}
+            </div>
+            
+            {% if order.status == 'delivery' and order.verification_code %}
+            <div class="delivery-verification">
+                <div class="verification-info">
+                    <h4>✅ Ваш заказ передан в доставку</h4>
+                    <p><strong>Код подтверждения для получения:</strong> 
+                       <span class="verification-code">{{ order.verification_code }}</span>
+                    </p>
+                    <p class="verification-help">Сообщите этот код продавцу при получении заказа</p>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if order.updated_at != order.created_at %}
+            <div class="order-updated">
+                <small>Последнее обновление: {{ order.updated_at[:16] }}</small>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
     </div>
+    {% else %}
+    <div class="empty-orders">
+        <div class="empty-orders__icon">📦</div>
+        <h3 class="empty-orders__title">У вас пока нет заказов</h3>
+        <p class="empty-orders__text">Начните покупки и ваши заказы появятся здесь</p>
+        <a href="{{ url_for('index') }}" class="btn btn--primary">Перейти к покупкам</a>
+    </div>
+    {% endif %}
 </div>
+
+<style>
+.order-item {
+    background-color: white;
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+}
+
+.order-item__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f8f9fa;
+}
+
+.order-item__products {
+    margin-bottom: 15px;
+}
+
+.order-product {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.order-product:last-child {
+    border-bottom: none;
+}
+
+.order-product__name {
+    flex: 2;
+    font-weight: 500;
+}
+
+.order-product__details {
+    flex: 1;
+    text-align: right;
+    color: var(--accent-color);
+}
+
+.order-item__status {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: var(--border-radius);
+}
+
+.order-total {
+    margin-left: auto;
+    font-size: 16px;
+}
+
+.order-address {
+    margin: 15px 0;
+    padding: 12px;
+    background-color: var(--secondary-color);
+    border-radius: var(--border-radius);
+    font-size: 14px;
+}
+
+.order-updated {
+    margin-top: 5px;
+    text-align: right;
+    color: #888;
+    font-size: 12px;
+}
+
+.delivery-verification {
+    margin: 20px 0;
+    padding: 20px;
+    background: linear-gradient(135deg, var(--secondary-color), #e6ffe6);
+    border-radius: var(--border-radius);
+    border-left: 4px solid var(--success-color);
+}
+
+.verification-info h4 {
+    color: var(--success-color);
+    margin-bottom: 10px;
+}
+
+.verification-code {
+    font-family: monospace;
+    font-size: 18px;
+    font-weight: bold;
+    color: #155724;
+    background-color: #d4edda;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.verification-help {
+    font-size: 14px;
+    color: #666;
+    margin-top: 5px;
+}
+
+.status-badge {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    margin-right: 15px;
+}
+
+.status-badge--payment {
+    background-color: var(--warning-color);
+    color: #856404;
+}
+
+.status-badge--shipping {
+    background-color: var(--secondary-color);
+    color: #004085;
+}
+
+.status-badge--delivery {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-badge--received {
+    background-color: var(--success-color);
+    color: #155724;
+}
+
+.empty-orders {
+    text-align: center;
+    padding: 60px 20px;
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+.empty-orders__icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.empty-orders__title {
+    color: var(--accent-color);
+    margin-bottom: 10px;
+    font-size: 24px;
+}
+
+.empty-orders__text {
+    color: var(--dark-color);
+    margin-bottom: 30px;
+    font-size: 16px;
+}
+
+@media (max-width: 768px) {
+    .order-item__header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+    
+    .order-item__status {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+    
+    .order-total {
+        margin-left: 0;
+    }
+    
+    .order-product {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .order-product__details {
+        text-align: left;
+    }
+    
+    .empty-orders {
+        padding: 40px 15px;
+    }
+    
+    .empty-orders__icon {
+        font-size: 48px;
+    }
+    
+    .empty-orders__title {
+        font-size: 20px;
+    }
+}
+</style>
 {% endblock %}
+

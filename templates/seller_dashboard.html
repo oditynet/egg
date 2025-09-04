@@ -9,6 +9,7 @@
     <div class="dashboard__tabs">
         <div class="dashboard__tab dashboard__tab--active" onclick="switchTab('addProduct')">Добавить товар</div>
         <div class="dashboard__tab" onclick="switchTab('orders')">Заказы</div>
+        <div class="dashboard__tab" onclick="switchTab('notifications')">Уведомления</div>
     </div>
     
     <div id="addProductTab" class="dashboard__content dashboard__content--active">
@@ -17,29 +18,35 @@
                 <label class="form__label">Название товара *</label>
                 <input type="text" class="form__input" id="productName" name="name" required>
             </div>
+            
             <div class="form__group">
                 <label class="form__label">Цена (руб.) *</label>
-                <input type="number" class="form__input" id="productPrice" name="price" min="0" step="0.01" required>
+                <input type="number" class="form__input" id="productPrice" name="price" min="1" step="0.01" required>
             </div>
+            
             <div class="form__group">
-                <label class="form__label">Описание *</label>
-                <textarea class="form__input" id="productDescription" name="description" rows="4" required></textarea>
+                <label class="form__label">Описание товара *</label>
+                <textarea class="form__input" id="productDescription" name="description" rows="4" required placeholder="Подробное описание товара..."></textarea>
             </div>
+            
             <div class="form__group">
-                <label class="form__label">Характеристики (каждая с новой строки) *</label>
-                <textarea class="form__input" id="productFeatures" name="features" rows="4" placeholder="Цвет: Красный
-Размер: M
-Материал: Хлопок" required></textarea>
+                <label class="form__label">Характеристики * (каждая с новой строки)</label>
+                <textarea class="form__input" id="productFeatures" name="features" rows="4" required placeholder="Процессор: Intel Core i5
+Память: 8 ГБ
+Диск: 512 ГБ SSD
+Экран: 15.6 дюймов"></textarea>
             </div>
+            
             <div class="form__group">
-                <label class="form__label">Изображения товара *</label>
+                <label class="form__label">Изображения товара * (максимум 5 файлов)</label>
                 <input type="file" class="form__input" id="productImages" name="images" multiple accept="image/*" required>
-                <small>Можно выбрать несколько изображений</small>
+                <small class="form-help">Выберите до 5 изображений товара. Форматы: JPG, PNG, GIF</small>
             </div>
-            <button type="submit" class="btn btn--primary">Добавить товар</button>
+            
+            <button type="submit" class="btn btn--primary" id="submitBtn">Добавить товар</button>
         </form>
         
-        <div id="addProductMessage" class="message" style="display: none; margin-top: 20px; padding: 10px; border-radius: var(--border-radius);"></div>
+        <div id="addProductMessage" class="message" style="display: none;"></div>
     </div>
     
     <div id="ordersTab" class="dashboard__content">
@@ -48,14 +55,17 @@
                 {% for order in orders %}
                 <div class="order-item">
                     <div class="order-item__header">
-                        <div>Заказ #{{ order.id }}</div>
-                        <div>{{ order.created_at }}</div>
+                        <div><strong>Заказ #{{ order.order_number }}</strong></div>
+                        <div>{{ order.created_at[:16] }}</div>
                     </div>
                     
                     <div class="order-item__products">
                         {% set order_products = order.products|from_json %}
                         {% for product in order_products %}
-                            <div>{{ product.name }} - {{ product.quantity }} шт. x {{ product.price }} руб.</div>
+                            <div class="order-product">
+                                <span class="order-product__name">{{ product.name }}</span>
+                                <span class="order-product__details">{{ product.quantity }} шт. × {{ product.price }} руб.</span>
+                            </div>
                         {% endfor %}
                     </div>
                     
@@ -63,27 +73,93 @@
                         <span class="status-badge status-badge--{{ order.status }}">
                             {% if order.status == 'payment' %}Оплата
                             {% elif order.status == 'shipping' %}Отправка
-                            {% elif order.status == 'delivered' %}Доставка
+                            {% elif order.status == 'delivery' %}Доставка
+                            {% elif order.status == 'received' %}Получен
                             {% else %}{{ order.status }}{% endif %}
                         </span>
-                        <span>Общая сумма: {{ order.total_price }} руб.</span>
+                        <span class="order-total">Общая сумма: <strong>{{ order.total_price }} руб.</strong></span>
                     </div>
                     
-                    <div>Адрес доставки: {{ order.address }}</div>
+                    <div class="order-address">
+                        <strong>Адрес доставки:</strong> {{ order.address }}
+                    </div>
                     
+                    {% if order.status == 'delivery' and order.verification_code %}
+                    <div class="delivery-verification">
+                        <div class="verification-info">
+                            <h4>✅ Заказ передан в доставку</h4>
+                            <p><strong>Код подтверждения для клиента:</strong> 
+                               <span class="verification-code">{{ order.verification_code }}</span>
+                            </p>
+                            <p class="verification-help">Клиент должен сообщить этот код при получении заказа</p>
+                        </div>
+                        
+                        <div class="verification-form">
+                            <h4>Подтверждение получения</h4>
+                            <div class="form-group">
+                                <input type="text" id="delivery_code_{{ order.id }}" 
+                                       placeholder="Введите код от клиента" class="form-input">
+                                <button class="btn btn--secondary" onclick="verifyDelivery({{ order.id }})">
+                                    Подтвердить получение
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if order.status == 'received' %}
+                    <div class="delivery-completed">
+                        <div class="status-badge status-badge--delivered">
+                            ✅ Заказ получен клиентом
+                        </div>
+                        <p class="completed-time">Подтверждено: {{ order.updated_at[:16] }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if order.status in ['payment', 'shipping'] %}
                     <div class="order-item__actions">
                         <select id="status_{{ order.id }}">
                             <option value="payment" {% if order.status == 'payment' %}selected{% endif %}>Оплата</option>
                             <option value="shipping" {% if order.status == 'shipping' %}selected{% endif %}>Отправка</option>
-                            <option value="delivered" {% if order.status == 'delivered' %}selected{% endif %}>Доставка</option>
+                            <option value="delivery">Доставка</option>
                         </select>
                         <button class="btn btn--secondary" onclick="updateOrderStatus({{ order.id }})">Обновить статус</button>
                     </div>
+                    {% endif %}
                 </div>
                 {% endfor %}
             {% else %}
-                <p class="text-center">Заказов пока нет</p>
+                <div class="empty-orders">
+                    <div class="empty-orders__icon">📦</div>
+                    <h3 class="empty-orders__title">Заказов пока нет</h3>
+                    <p class="empty-orders__text">Как только клиенты начнут делать заказы, они появятся здесь</p>
+                </div>
             {% endif %}
+        </div>
+    </div>
+
+    <div id="notificationsTab" class="dashboard__content">
+        <div class="notifications-section">
+            <h3>Уведомления {% if unread_count > 0 %}<span class="notification-badge">{{ unread_count }}</span>{% endif %}</h3>
+            
+            <div class="notifications-list">
+                {% if notifications %}
+                    {% for notification in notifications %}
+                    <div class="notification-item {% if not notification.is_read %}unread{% endif %}" data-id="{{ notification.id }}">
+                        <div class="notification-content">
+                            <p class="notification-message">{{ notification.message }}</p>
+                            <span class="notification-order">Заказ #{{ notification.order_number }}</span>
+                            <span class="notification-time">{{ notification.created_at[:16] }}</span>
+                        </div>
+                        {% if not notification.is_read %}
+                        <button class="mark-read-btn" onclick="markNotificationRead({{ notification.id }})">✓</button>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-center">Нет уведомлений</p>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
@@ -102,56 +178,70 @@
         document.querySelectorAll('.dashboard__tab').forEach(tab => {
             tab.classList.remove('dashboard__tab--active');
         });
-        event.target.classList.add('dashboard__tab--active');
+        document.querySelector(`.dashboard__tab:nth-child(${tabName === 'addProduct' ? 1 : tabName === 'orders' ? 2 : 3})`).classList.add('dashboard__tab--active');
     }
 
-    document.getElementById('addProductForm').addEventListener('submit', function(e) {
+    // Обработка формы добавления товара
+    document.getElementById('addProductForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        const formData = new FormData();
-        formData.append('name', document.getElementById('productName').value);
-        formData.append('price', document.getElementById('productPrice').value);
-        formData.append('description', document.getElementById('productDescription').value);
-        formData.append('features', document.getElementById('productFeatures').value);
+        const form = e.target;
+        const formData = new FormData(form);
+        const submitBtn = document.getElementById('submitBtn');
+        const messageDiv = document.getElementById('addProductMessage');
         
-        // Добавляем файлы изображений
-        const imageFiles = document.getElementById('productImages').files;
-        for (let i = 0; i < imageFiles.length; i++) {
-            formData.append('images', imageFiles[i]);
+        // Валидация
+        const name = formData.get('name');
+        const price = formData.get('price');
+        const description = formData.get('description');
+        const features = formData.get('features');
+        const images = formData.get('images');
+        
+        if (!name || !price || !description || !features) {
+            showMessage('Заполните все обязательные поля', 'error');
+            return;
         }
         
-        const messageDiv = document.getElementById('addProductMessage');
+        if (parseFloat(price) <= 0) {
+            showMessage('Цена должна быть больше 0', 'error');
+            return;
+        }
+        
+        // Показываем загрузку
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Добавление...';
         messageDiv.style.display = 'none';
         
-        fetch('{{ url_for("add_product") }}', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
+        try {
+            const response = await fetch('{{ url_for("add_product") }}', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
             if (data.success) {
-                messageDiv.style.backgroundColor = 'var(--success-color)';
-                messageDiv.style.color = 'white';
-                messageDiv.textContent = 'Товар успешно добавлен! ID: ' + data.product_id;
-                messageDiv.style.display = 'block';
-                document.getElementById('addProductForm').reset();
-                
-                // Прокрутка к сообщению
-                messageDiv.scrollIntoView({ behavior: 'smooth' });
+                showMessage('Товар успешно добавлен! ID: ' + data.product_id, 'success');
+                form.reset();
             } else {
-                messageDiv.style.backgroundColor = 'var(--error-color)';
-                messageDiv.style.color = 'white';
-                messageDiv.textContent = 'Ошибка: ' + data.message;
-                messageDiv.style.display = 'block';
+                showMessage('Ошибка: ' + data.message, 'error');
             }
-        })
-        .catch(error => {
-            messageDiv.style.backgroundColor = 'var(--error-color)';
-            messageDiv.style.color = 'white';
-            messageDiv.textContent = 'Ошибка сети: ' + error.message;
-            messageDiv.style.display = 'block';
-        });
+        } catch (error) {
+            showMessage('Ошибка сети: ' + error.message, 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Добавить товар';
+        }
     });
+
+    function showMessage(text, type) {
+        const messageDiv = document.getElementById('addProductMessage');
+        messageDiv.textContent = text;
+        messageDiv.className = `message ${type}`;
+        messageDiv.style.display = 'block';
+        
+        messageDiv.scrollIntoView({ behavior: 'smooth' });
+    }
 
     function updateOrderStatus(orderId) {
         const status = document.getElementById('status_' + orderId).value;
@@ -167,41 +257,202 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Статус заказа обновлен!');
+                if (data.verification_code) {
+                    alert('Статус обновлен! Код подтверждения для клиента: ' + data.verification_code);
+                } else {
+                    alert('Статус обновлен!');
+                }
                 location.reload();
             } else {
                 alert('Ошибка: ' + data.message);
             }
         });
     }
+
+    function verifyDelivery(orderId) {
+        const code = document.getElementById('delivery_code_' + orderId).value;
+        
+        if (!code) {
+            alert('Введите код подтверждения от клиента');
+            return;
+        }
+        
+        if (code.length !== 6 || isNaN(code)) {
+            alert('Код должен состоять из 6 цифр');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('order_id', orderId);
+        formData.append('code', code);
+        
+        fetch('{{ url_for("verify_delivery") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert(data.message);
+            }
+        });
+    }
+
+    function markNotificationRead(notificationId) {
+        fetch('{{ url_for("mark_notification_read") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'notification_id=' + notificationId
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.querySelector(`.notification-item[data-id="${notificationId}"]`).classList.remove('unread');
+                document.querySelector(`.notification-item[data-id="${notificationId}"] .mark-read-btn`).remove();
+                location.reload();
+            }
+        });
+    }
 </script>
 
 <style>
-.message {
-    padding: 15px;
+.add-product-form {
+    background: white;
+    padding: 30px;
     border-radius: var(--border-radius);
-    margin: 15px 0;
-    text-align: center;
+    box-shadow: var(--shadow);
+    max-width: 600px;
+    margin: 0 auto;
 }
 
-.add-product-form small {
+.form-help {
     color: #666;
     font-size: 12px;
     display: block;
     margin-top: 5px;
 }
 
-.order-item__actions {
-    margin-top: 15px;
-    display: flex;
-    gap: 10px;
-    align-items: center;
+.message {
+    padding: 15px;
+    border-radius: var(--border-radius);
+    margin: 20px 0;
+    text-align: center;
+    font-weight: 500;
 }
 
-.order-item__actions select {
-    padding: 8px;
+.message.success {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.message.error {
+    background-color: var(--error-color);
+    color: white;
+}
+
+/* Стили для уведомлений */
+.notifications-section {
+    background: white;
+    padding: 20px;
     border-radius: var(--border-radius);
-    border: 1px solid #ddd;
+    box-shadow: var(--shadow);
+}
+
+.notification-badge {
+    background: var(--accent-color);
+    color: white;
+    border-radius: 50%;
+    padding: 2px 8px;
+    font-size: 12px;
+}
+
+.notification-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.3s;
+}
+
+.notification-item.unread {
+    background-color: #f8f9fa;
+    border-left: 4px solid var(--accent-color);
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-message {
+    margin: 0 0 5px 0;
+    font-weight: 500;
+}
+
+.notification-order {
+    color: #666;
+    font-size: 14px;
+    margin-right: 10px;
+}
+
+.notification-time {
+    color: #999;
+    font-size: 12px;
+}
+
+.mark-read-btn {
+    background: var(--success-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.mark-read-btn:hover {
+    background: #28a745;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .add-product-form {
+        padding: 20px;
+        margin: 0;
+    }
+    
+    .dashboard__tabs {
+        flex-direction: column;
+    }
+    
+    .dashboard__tab {
+        text-align: center;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .dashboard__tab--active {
+        border-bottom: 2px solid var(--accent-color);
+    }
+    
+    .notification-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .mark-read-btn {
+        align-self: flex-end;
+    }
 }
 </style>
 {% endblock %}
